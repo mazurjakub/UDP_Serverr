@@ -21,7 +21,7 @@ namespace UDP_Server
                 int recv = 0;
                 var remoteEP = new IPEndPoint(IPAddress.Any, 1700);
                 udpServer.AllowNatTraversal(true);
-                receivedData = udpServer.Receive(ref remoteEP); // listen on port 11000
+                receivedData = udpServer.Receive(ref remoteEP); // listen on port 1700
 
                 foreach (byte b in receivedData)
                 {
