@@ -54,7 +54,7 @@ namespace UDP_Server
                 {
                     if(clientIPs[i] == connectedClient.Address.ToString()) {
                         isNewClient = false;
-                        if(request == "0")
+                        if(request.Equals("0"))
                         {
                             connectedClients -= 1;
                             Array.Copy(clientIPs, i + 1, clientIPs, i, connectedClients);
