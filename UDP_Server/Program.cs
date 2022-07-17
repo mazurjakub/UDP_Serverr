@@ -12,15 +12,19 @@ namespace UDP_Server
     {
         public static UdpClient UDPServer = new UdpClient(1700);
         public static int connectedClients = 0;
-        public static string[] clientIPs = new string[100];
-        public static string[] clientPorts = new string[100];
-        public static string[] clientKeys = new string[100];
+        
 
 
 
 
         static void Main(string[] args)
         {
+            ClientData[] clients = new ClientData[150];
+            UDPServer.AllowNatTraversal(true);
+            UDPServer.Client.SetIPProtectionLevel(IPProtectionLevel.Unrestricted);
+
+            
+            
             
 
             while (true)
@@ -30,10 +34,9 @@ namespace UDP_Server
                 int recv = 0;
                 var connectedClient = new IPEndPoint(IPAddress.Any, 1700);
 
-                UDPServer.AllowNatTraversal(true);
-                UDPServer.Client.SetIPProtectionLevel(IPProtectionLevel.Unrestricted);
+                
 
-                Console.WriteLine("Waiting for message");
+                Console.WriteLine("Cekam na zpravu...");
 
                 receivedData = UDPServer.Receive(ref connectedClient); // listen on port 1700 for any message
 
@@ -52,14 +55,12 @@ namespace UDP_Server
                 // Check if client is already in server database
                 for (int i = 0; i < connectedClients; i++)
                 {
-                    if(clientIPs[i] == connectedClient.Address.ToString()) {
+                    if(clients[i].IP == connectedClient.Address.ToString()) {
                         isNewClient = false;
                         if(request.Equals("0"))
                         {
-                            connectedClients -= 1;
-                            Array.Copy(clientIPs, i + 1, clientIPs, i, connectedClients);
-                            Array.Copy(clientPorts, i + 1, clientPorts, i, connectedClients);
-                            Array.Copy(clientKeys, i + 1, clientKeys, i, connectedClients);
+                            connectedClients--;
+                            Array.Copy(clients, i + 1, clients, i, connectedClients);
                             SendMessageToClient("Byl jste odstranen ze zaznamu serveru.", connectedClient);
                             break;
                         }
@@ -69,35 +70,43 @@ namespace UDP_Server
                             break;
                         }
                     }
-                    else if(request == clientKeys[i])
+                    else if(request == clients[i].Key)
                     {
                         // Exchanging connection info to clients
-                        IPEndPoint secondClient = new IPEndPoint(IPAddress.Parse(clientIPs[i]), int.Parse(clientPorts[i]));
+                        IPEndPoint secondClient = new IPEndPoint(IPAddress.Parse(clients[i].IP), int.Parse(clients[i].Port));
                         SendMessageToClient("Navazuji spojeni s " + connectedClient.Address.ToString() + ":" + connectedClient.Port.ToString(), secondClient);
                         SendMessageToClient(connectedClient.Address.ToString(), secondClient);
                         SendMessageToClient(connectedClient.Port.ToString(), secondClient);
 
-                        SendMessageToClient("Navazuji spojeni s " + clientIPs[i] + ":" + clientPorts[i], connectedClient);
-                        SendMessageToClient(clientIPs[i], connectedClient);
-                        SendMessageToClient(clientPorts[i], connectedClient);
+                        SendMessageToClient("Navazuji spojeni s " + clients[i].IP + ":" + clients[i].Port, connectedClient);
+                        SendMessageToClient(clients[i].IP, connectedClient);
+                        SendMessageToClient(clients[i].Port, connectedClient);
                         
                         //Removing connected client from database
-                        connectedClients -= 1;
-                        Array.Copy(clientIPs, i + 1, clientIPs, i, connectedClients);
-                        Array.Copy(clientPorts, i + 1, clientPorts, i, connectedClients);
-                        Array.Copy(clientKeys, i + 1, clientKeys, i, connectedClients);
-                        
+                        connectedClients--;
+                        Array.Copy(clients, i + 1, clients, i, connectedClients); 
                         isNewClient = false;
                         break;
+                    }
+                }
+
+                //Remove timeouted clients
+                for (int i = 0; i < connectedClients; i++)
+                {
+                    if (DateTime.Compare(clients[i].TimeOfRemoval, DateTime.Now) <= 0)
+                    {
+                        IPEndPoint removedClient = new IPEndPoint(IPAddress.Parse(clients[i].IP), int.Parse(clients[i].Port));
+                        SendMessageToClient("Vas zaznam na serveru byl po uplynutych 10 minutach odstranen.", removedClient);
+
+                        connectedClients--;
+                        Array.Copy(clients, i + 1, clients, i, connectedClients);
                     }
                 }
 
                 // Adds new client to server database
                 if (isNewClient)
                 {
-                    clientIPs[connectedClients] = connectedClient.Address.ToString();
-                    clientPorts[connectedClients] = connectedClient.Port.ToString();
-                    clientKeys[connectedClients] = request;
+                    clients[connectedClients] = new ClientData() { IP = connectedClient.Address.ToString(), Port = connectedClient.Port.ToString(), Key = request, TimeOfRemoval = DateTime.Now.AddMinutes(10)  };
                     connectedClients++;
                     SendMessageToClient("Byl jste zaznamenan na serveru s klicem " + request, connectedClient);
                 }
@@ -115,6 +124,7 @@ namespace UDP_Server
             UDPServer.Send(sendData, byteCount, reciever);
         }
 
+        
        
     }
 }
