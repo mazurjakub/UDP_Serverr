@@ -33,6 +33,8 @@ namespace UDP_Server
                 UDPServer.AllowNatTraversal(true);
                 UDPServer.Client.SetIPProtectionLevel(IPProtectionLevel.Unrestricted);
 
+                Console.WriteLine("Waiting for message");
+
                 receivedData = UDPServer.Receive(ref connectedClient); // listen on port 1700 for any message
 
                 foreach (byte b in receivedData)
@@ -42,6 +44,8 @@ namespace UDP_Server
                         recv++;
                     }
                 }
+
+                Console.WriteLine("\n");
 
                 string request = Encoding.UTF8.GetString(receivedData, 0, recv);
 
@@ -99,7 +103,7 @@ namespace UDP_Server
                 }
 
                 Console.WriteLine("Prichozi zprava z IP: " + connectedClient.Address.ToString() + " Port: " + connectedClient.Port.ToString());
-                Console.WriteLine("Obsah zpravy: " + request);
+                Console.WriteLine("Obsah zpravy: " + request + "\n");
                 
             }
         }
